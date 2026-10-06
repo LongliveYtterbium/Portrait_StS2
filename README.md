@@ -4,6 +4,8 @@
 
 开发和当前验证在 PC 上完成，覆盖若干 9:16、9:19.5 与 9:20 场景。Android 启动器集成、物理 Android 客户端触控与性能验证仍待完成；当前发布不含 APK。完整连续一局、全部怪物和全部动态事件的验收仍未完成。
 
+<img src="docs/images/combat-portrait.png" alt="PC 预览版竖屏战斗界面，9:16" width="300">
+
 ## 安装
 
 从 [Releases](https://github.com/LongliveYtterbium/Portrait_StS2/releases) 下载预览版安装 ZIP，解压后将 Mod 文件夹放到游戏目录：
