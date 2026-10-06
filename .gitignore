@@ -1,0 +1,22 @@
+# Build output and local evidence
+bin/
+obj/
+logs/
+deploy-logs/
+# Art and install packages are distributed as Release assets.
+assets/
+*.pck
+*.zip
+*.dll
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+# Local laboratory tools depend on the private test workspace.
+tools/lab.ps1
+tools/lab-command.ps1
+.vs/
+.idea/
+*.user
+*.suo
+.env
+.env.*

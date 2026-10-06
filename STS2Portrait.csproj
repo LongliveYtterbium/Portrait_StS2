@@ -1,0 +1,85 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- STS2Portrait - portrait layout mod for Slay the Spire 2 (PC).
+       The game ships and runs the .NET 9 runtime (Microsoft.NETCore.App 9.0.7),
+       so TargetFramework must stay net9.0. Do not "upgrade" this.
+       Note: `dotnet new classlib -f net9.0` fails on this machine (.NET 10 SDK
+       templates only offer net10.0/netstandard2.x) - this file is written by hand. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>STS2Portrait</RootNamespace>
+    <AssemblyName>STS2Portrait</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Locate the game install. Resolution order:
+         1. /p:Sts2GameDir=<path>
+         2. %STS2_GAME_DIR% environment variable
+         3. the literal default below (this machine's实测 path; it contains no
+            non-ASCII characters, so keeping it as a literal is safe)
+       Override with: dotnet build -p:Sts2GameDir="D:\somewhere\Slay the Spire 2" -->
+  <PropertyGroup>
+    <Sts2GameDir Condition="'$(Sts2GameDir)' == '' and '$(STS2_GAME_DIR)' != ''">$(STS2_GAME_DIR)</Sts2GameDir>
+    <Sts2GameDir Condition="'$(Sts2GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2GameDir>
+    <Sts2ManagedDir>$(Sts2GameDir)\data_sts2_windows_x86_64</Sts2ManagedDir>
+  </PropertyGroup>
+
+  <!-- Reference the game assembly only. Private=false keeps the 9.7 MB sts2.dll
+       out of our output folder: the game process already has it loaded, so copying
+       it next to our mod would be both wasteful and potentially harmful. -->
+  <ItemGroup>
+    <Reference Include="sts2">
+      <HintPath>$(Sts2ManagedDir)\sts2.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Compile-time references for Godot types and the RitsuLib patcher API (A05).
+       Nothing here is fetched from NuGet: every assembly is taken from files that are
+       already installed on this machine, so the build stays offline and the loader's
+       "one folder = one dll + one json" shape is preserved.
+
+       RitsuLib reference path resolution order:
+         1. /p:RitsuLibRefsProps=<path to RitsuLib.References.props>
+         2. environment variable STS2_RITSULIB_REFS = directory holding that props file
+         3. the literal Workshop install below (ASCII-only path, safe as a literal)
+       The official props file contributes the five RitsuLib references itself, each with
+       Private=False, and verifies every path exists before ResolveAssemblyReferences.
+       Its auto-detection of the compat target only fires when exactly one directory exists
+       under compat/; this machine has four (0.107.1 / 0.109.0 / 0.110.0 / 0.111.0), so the
+       target version has to be pinned explicitly - see reports/A04.md section R2. -->
+  <PropertyGroup>
+    <RitsuLibRefsProps Condition="'$(RitsuLibRefsProps)' == '' and '$(STS2_RITSULIB_REFS)' != ''">$(STS2_RITSULIB_REFS)\RitsuLib.References.props</RitsuLibRefsProps>
+    <RitsuLibRefsProps Condition="'$(RitsuLibRefsProps)' == ''">C:\Program Files (x86)\Steam\steamapps\workshop\content\2868840\3747602295\RitsuLib.References.props</RitsuLibRefsProps>
+    <RitsuLibReferenceTarget>0.111.0</RitsuLibReferenceTarget>
+  </PropertyGroup>
+
+  <Import Project="$(RitsuLibRefsProps)" Condition="Exists('$(RitsuLibRefsProps)')" />
+
+  <!-- GodotSharp and Harmony: use the copies the game ships (GodotSharp 4.5.1.0 and
+       0Harmony 2.4.2.0, both measured in reports/A02.md) rather than NuGet packages,
+       whose GodotSharp is 4.4.0 and would create a version conflict at load time.
+       Private=false again keeps them out of our output folder. -->
+  <ItemGroup>
+    <Reference Include="GodotSharp">
+      <HintPath>$(Sts2ManagedDir)\GodotSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(Sts2ManagedDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Fail loudly when the RitsuLib reference pack is not installed. A missing props file
+       must stop the build; silently producing a dll that cannot find its framework at
+       runtime is the failure mode this gate exists to prevent. No download is ever
+       attempted by this project. -->
+  <Target Name="ValidateLocalReferencePacks" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(RitsuLibRefsProps)')"
+           Text="RitsuLib.References.props not found at the configured path. Install RitsuLib for the game, or point the build at it with /p:RitsuLibRefsProps (or the STS2_RITSULIB_REFS environment variable). This project never downloads dependencies." />
+  </Target>
+
+</Project>
